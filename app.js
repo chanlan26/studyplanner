@@ -2,16 +2,24 @@
       "use strict";
       const STORAGE_KEY="study-flow-planner-v1";
       const WEEK=["일","월","화","수","목","금","토"];
+      const MONTH_SYMBOLS=["❄","♡","✿","☂","♧","☀","⛱","☆","✎","♬","☕","✦"];
       const EVENT_LABEL={exam:"시험",assignment:"수행평가",schedule:"일정"};
       const PRIORITY_LABEL={low:"Low",medium:"Medium",high:"High"};
       const ACCENTS=["#5868E8","#5963D9","#8658C7","#388F73","#D77943","#D55D8E"];
+      const BACKGROUNDS=[
+        {id:"ocean",name:"창밖의 바다",icon:"〰"},
+        {id:"crystal",name:"크리스탈 산",icon:"◇"},
+        {id:"grassland",name:"드넓은 초원",icon:"♧"},
+        {id:"space",name:"보라빛 우주",icon:"✦"},
+        {id:"cliff",name:"절벽 위 하늘",icon:"☁"}
+      ];
       const DEFAULT_SUBJECTS=[
         ["korean","국어","#ef8b8b"],["english","영어","#72a7e8"],["math","수학","#9585e6"],["science","과학","#70bd98"],
         ["social","사회","#e9a66f"],["history","역사","#ae8b78"],["info","정보","#67bdc8"],["music","음악","#e99dbe"],
         ["art","미술","#e4bf63"],["pe","체육","#9fca69"],["tech","기술·가정","#8098cc"],["other","기타","#9fa5b2"]
       ].map(([id,name,color])=>({id,name,color}));
       const INITIAL={
-        accent:"#5868E8",subjects:DEFAULT_SUBJECTS,
+        accent:"#5868E8",background:"ocean",glassOpacity:80,subjects:DEFAULT_SUBJECTS,
         events:[
           {id:"seed-exam",date:"2026-09-15",type:"exam",subject:"수학",title:"수학 시험",examRange:"교과서 52~81쪽\n3단원 일차방정식",content:"일차방정식 계산\n활용 문제\n서술형 2문제",note:"프린트 3번 다시 풀기"},
           {id:"seed-assignment",date:"2026-09-15",type:"assignment",subject:"영어",title:"영어 수행평가",examRange:"Unit 5 본문",content:"2분 영어 스피치",note:"발음 녹음 확인"},
@@ -43,7 +51,8 @@
         try{
           const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");
           if(!saved)return clone(INITIAL);
-          return {accent:saved.accent||INITIAL.accent,subjects:Array.isArray(saved.subjects)&&saved.subjects.length?saved.subjects:clone(DEFAULT_SUBJECTS),events:Array.isArray(saved.events)?saved.events:clone(INITIAL.events),todos:Array.isArray(saved.todos)?saved.todos:clone(INITIAL.todos)};
+          const savedOpacity=Number(saved.glassOpacity);
+          return {accent:saved.accent||INITIAL.accent,background:BACKGROUNDS.some(item=>item.id===saved.background)?saved.background:INITIAL.background,glassOpacity:Number.isFinite(savedOpacity)?Math.min(100,Math.max(35,savedOpacity)):INITIAL.glassOpacity,subjects:Array.isArray(saved.subjects)&&saved.subjects.length?saved.subjects:clone(DEFAULT_SUBJECTS),events:Array.isArray(saved.events)?saved.events:clone(INITIAL.events),todos:Array.isArray(saved.todos)?saved.todos:clone(INITIAL.todos)};
         }catch{return clone(INITIAL)}
       }
       function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data))}catch{}}
@@ -61,6 +70,8 @@
         document.documentElement.style.setProperty("--accent-text",contrast(data.accent));
         document.querySelector('meta[name="theme-color"]').content=data.accent;
       }
+      function applyBackground(){document.body.dataset.background=data.background||INITIAL.background}
+      function applyGlass(){document.documentElement.style.setProperty("--glass-opacity",(data.glassOpacity/100).toFixed(2))}
       function showToast(message){const el=document.querySelector("#toast");el.textContent=message;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),1700)}
 
       function holidaysFor(targetYear){
@@ -116,7 +127,7 @@
             const pills=events.slice(0,2).map(event=>{const color=event.type==="schedule"?"#8c94a4":colorOf(event.subject);return '<button class="event-pill" data-action="open-event" data-id="'+esc(event.id)+'" style="background:'+soft(color)+';color:'+color+';border-left-color:'+color+'">'+esc(event.title)+'</button>'}).join("");
             return '<div class="day '+(holiday?"holiday ":"")+(selectedDate===key?"selected ":"")+(today===key?"today":"")+'" data-action="open-date" data-date="'+key+'" tabindex="0"><div class="day-top"><span class="number">'+day+'</span>'+(todos.length?'<span class="todo-badge">Todo '+todos.length+'</span>':"")+'</div>'+(holiday?'<span class="holiday-name">'+esc(holiday.join(" · "))+'</span>':"")+'<div class="event-pills">'+pills+(events.length>2?'<span class="more">+'+(events.length-2)+'</span>':"")+'</div></div>';
           }).join("");
-          return '<article class="month-card '+(month===mobileMonth?"mobile-active":"")+'"><div class="month-title"><h2>'+(month+1)+'월</h2><span>'+year+'</span></div><div class="week">'+WEEK.map(day=>"<span>"+day+"</span>").join("")+'</div><div class="days">'+daysHtml+'</div></article>';
+          return '<article class="month-card '+(month===mobileMonth?"mobile-active":"")+'"><div class="month-title"><h2><i class="month-symbol">'+MONTH_SYMBOLS[month]+'</i>'+(month+1)+'월</h2><span>'+year+'</span></div><div class="week">'+WEEK.map(day=>"<span>"+day+"</span>").join("")+'</div><div class="days">'+daysHtml+'</div></article>';
         }).join("");
       }
       function renderTodoOptions(){
@@ -150,9 +161,12 @@
       function renderSettings(){
         document.querySelector("#accent-list").innerHTML=ACCENTS.map(color=>'<button class="'+(data.accent.toUpperCase()===color?"selected":"")+'" style="background:'+color+'" data-action="accent" data-value="'+color+'" aria-label="'+color+' 선택">'+(data.accent.toUpperCase()===color?"✓":"")+'</button>').join("");
         document.querySelector("#custom-accent").value=data.accent;
+        document.querySelector("#glass-opacity").value=data.glassOpacity;
+        document.querySelector("#glass-opacity-value").textContent=Math.round(data.glassOpacity)+"%";
         document.querySelector("#subject-list").innerHTML=data.subjects.map(subject=>'<div class="subject-row"><input type="color" value="'+subject.color+'" data-subject-color="'+esc(subject.id)+'" aria-label="'+esc(subject.name)+' 색상"><span>'+esc(subject.name)+'</span><button data-action="delete-subject" data-id="'+esc(subject.id)+'" aria-label="'+esc(subject.name)+' 삭제">×</button></div>').join("");
+        document.querySelector("#background-list").innerHTML=BACKGROUNDS.map(item=>'<button class="background-option '+(data.background===item.id?"selected":"")+'" data-action="background" data-value="'+item.id+'" aria-pressed="'+(data.background===item.id)+'"><img src="assets/backgrounds/'+item.id+'-desktop.png" alt="" loading="lazy"><span><i>'+item.icon+'</i><b>'+item.name+'</b></span></button>').join("");
       }
-      function renderAll(){applyAccent();renderNav();renderCalendar();renderTodoOptions();renderTodos();renderSettings()}
+      function renderAll(){applyAccent();applyBackground();applyGlass();renderNav();renderCalendar();renderTodoOptions();renderTodos();renderSettings()}
 
       function openDate(key){selectedDate=key;selectedEventId=null;addingEvent=false;renderCalendar();renderPanel()}
       function openEvent(id){const item=data.events.find(event=>event.id===id);if(!item)return;selectedDate=item.date;selectedEventId=id;addingEvent=false;renderCalendar();renderPanel()}
@@ -201,6 +215,7 @@
         if(action==="toggle-todo"){const todo=data.todos.find(item=>item.id===target.dataset.id);if(todo){todo.completed=!todo.completed;save();renderAll()}}
         if(action==="delete-todo"&&confirm("이 할 일을 삭제할까요?")){data.todos=data.todos.filter(todo=>todo.id!==target.dataset.id);save();renderAll()}
         if(action==="accent"){data.accent=target.dataset.value;save();renderAll()}
+        if(action==="background"){data.background=target.dataset.value;save();applyBackground();renderSettings();showToast("배경을 바꿨어요.")}
         if(action==="delete-subject"){
           if(data.subjects.length<=1)return showToast("과목은 하나 이상 필요해요.");
           if(confirm("이 과목을 목록에서 삭제할까요? 기존 일정은 유지됩니다.")){data.subjects=data.subjects.filter(subject=>subject.id!==target.dataset.id);save();renderAll()}
@@ -225,6 +240,7 @@
 
       document.addEventListener("input",event=>{
         if(event.target.id==="year-input"){const value=Number(event.target.value);if(value>=1900&&value<=2100){year=value;renderCalendar()}}
+        if(event.target.id==="glass-opacity"){data.glassOpacity=Number(event.target.value);applyGlass();document.querySelector("#glass-opacity-value").textContent=data.glassOpacity+"%";save()}
         if(event.target.matches("[data-event-field]")&&selectedEventId){const item=data.events.find(event=>event.id===selectedEventId);if(item){item[event.target.dataset.eventField]=event.target.value;save()}}
       });
       document.addEventListener("change",event=>{
@@ -237,6 +253,21 @@
         if((event.key==="Enter"||event.key===" ")&&event.target.matches(".day")){event.preventDefault();openDate(event.target.dataset.date)}
         if(event.ctrlKey&&event.key==="Enter"&&event.target.closest("#event-form"))event.target.closest("#event-form").requestSubmit();
       });
+      const finePointer=window.matchMedia("(hover: hover) and (pointer: fine)");
+      document.addEventListener("pointermove",event=>{
+        const card=event.target.closest(".month-card");if(!card||!finePointer.matches)return;
+        const rect=card.getBoundingClientRect(),offsetX=(event.clientX-rect.left)/rect.width-.5,offsetY=(event.clientY-rect.top)/rect.height-.5;
+        card.classList.add("tilt-active");
+        card.style.setProperty("--tilt-rx",(-offsetY*10).toFixed(2)+"deg");
+        card.style.setProperty("--tilt-ry",(offsetX*10).toFixed(2)+"deg");
+        card.style.setProperty("--shine-x",((offsetX+.5)*100).toFixed(1)+"%");
+        card.style.setProperty("--shine-y",((offsetY+.5)*100).toFixed(1)+"%");
+      });
+      document.addEventListener("pointerout",event=>{
+        const card=event.target.closest(".month-card");if(!card||card.contains(event.relatedTarget))return;
+        card.classList.remove("tilt-active");
+        card.style.setProperty("--tilt-rx","0deg");card.style.setProperty("--tilt-ry","0deg");card.style.setProperty("--shine-x","50%");card.style.setProperty("--shine-y","50%");
+      });
       document.querySelector("#modal-layer").addEventListener("mousedown",event=>{if(event.target===event.currentTarget)closePanel()});
-      applyAccent();renderAll();
+      applyAccent();applyBackground();applyGlass();renderAll();
     })();
