@@ -15,15 +15,26 @@
 </head>
 <body>
   <div class="app-background" aria-hidden="true"></div>
+  <svg class="liquid-defs" aria-hidden="true" width="0" height="0">
+    <defs>
+      <filter id="liquid-glass-distortion" x="-20%" y="-20%" width="140%" height="140%">
+        <feTurbulence type="fractalNoise" baseFrequency="0.012 0.02" numOctaves="2" seed="7" result="noise"/>
+        <feGaussianBlur in="noise" stdDeviation="0.7" result="softNoise"/>
+        <feDisplacementMap in="SourceGraphic" in2="softNoise" scale="16" xChannelSelector="R" yChannelSelector="B"/>
+      </filter>
+    </defs>
+  </svg>
   <header class="topbar">
     <button class="brand" data-action="page" data-page="calendar" aria-label="Study Flow 홈"><span class="brand-mark">S</span>Study Flow <span class="brand-sparkle">✦</span></button>
-    <nav class="nav" aria-label="주 메뉴">
+    <div class="top-actions"><span class="token-chip" title="보유 토큰">✦ <b id="token-balance">0</b></span><button class="today-button" data-action="today">오늘</button></div>
+  </header>
+  <nav class="nav" aria-label="주 메뉴">
       <button class="active" data-action="page" data-page="calendar"><span class="nav-icon">▦</span>Calendar</button>
       <button data-action="page" data-page="todo"><span class="nav-icon">✓</span>Todo</button>
+      <button data-action="page" data-page="market"><span class="nav-icon">◇</span>Market</button>
+      <button data-action="page" data-page="quests"><span class="nav-icon">✦</span>Quest</button>
       <button data-action="page" data-page="settings"><span class="nav-icon">⚙</span>Settings</button>
-    </nav>
-    <div class="top-actions"><button class="today-button" data-action="today">오늘</button></div>
-  </header>
+  </nav>
 
   <main class="workspace">
     <section class="view active" id="calendar-view">
@@ -56,10 +67,21 @@
       </div>
     </section>
 
+    <section class="view" id="market-view">
+      <div class="page-head market-head"><div><p class="eyebrow">BACKGROUND MARKET</p><h1>공부할수록 열리는 풍경</h1><p class="subtitle">Todo를 완료해 모은 토큰으로 새로운 배경을 잠금 해제하세요.</p></div><div class="wallet-card"><span>✦</span><div><small>보유 토큰</small><b id="market-token-balance">0</b></div></div></div>
+      <div class="market-guide"><div><span>✓</span><p><b>Todo 1개 완료</b><small>100 토큰 획득</small></p></div><div><span>10</span><p><b>하루 최대 보상</b><small id="market-daily-progress">0 / 10 완료</small></p></div><div><span>◇</span><p><b>영구 소장</b><small>구매한 배경은 계속 사용 가능</small></p></div></div>
+      <div class="market-grid" id="market-grid"></div>
+    </section>
+
+    <section class="view" id="quests-view">
+      <div class="page-head"><div><p class="eyebrow">DAILY QUEST</p><h1>매일 조금씩, 꾸준하게</h1><p class="subtitle">새로운 공부 도전과 보상 시스템을 준비하고 있어요.</p></div><div class="quest-progress-card"><span id="quest-reward-count">0 / 10</span><small>오늘 Todo 보상</small></div></div>
+      <section class="quest-coming card"><div class="quest-orbit" aria-hidden="true"><span>✦</span></div><p class="eyebrow">COMING SOON</p><h2>일일 퀘스트는 추후 업데이트됩니다</h2><p>연속 공부, 과목별 도전, 특별 토큰 보상처럼 매일 새롭게 달성할 수 있는 퀘스트를 준비 중이에요.</p><div class="planned-quests"><span>연속 출석</span><span>집중 공부</span><span>과목 도전</span></div></section>
+    </section>
+
     <section class="view" id="settings-view">
       <div class="page-head"><div><p class="eyebrow">PERSONALIZE</p><h1>나만의 플래너</h1><p class="subtitle">강조색과 과목을 내 공부 방식에 맞게 설정하세요.</p></div></div>
       <div class="settings-grid">
-        <section class="settings-card card"><div class="setting-head"><span class="setting-index">01</span><div><h2>화면 스타일</h2><p>강조색과 모든 창의 투명도를 조절하세요.</p></div></div><div class="accent-list" id="accent-list"></div><label class="custom-color"><span><b>Custom color</b><small>원하는 색을 직접 선택하세요.</small></span><input type="color" id="custom-accent"></label><label class="glass-control" for="glass-opacity"><span><b>창 투명도</b><small>모든 유리 창에 함께 적용돼요.</small></span><div class="opacity-control"><input type="range" id="glass-opacity" min="35" max="100" step="1"><output id="glass-opacity-value" for="glass-opacity">80%</output></div></label></section>
+        <section class="settings-card card"><div class="setting-head"><span class="setting-index">01</span><div><h2>화면 스타일</h2><p>강조색과 모든 창의 투명도를 조절하세요.</p></div></div><div class="accent-list" id="accent-list"></div><label class="custom-color"><span><b>Custom color</b><small>원하는 색을 직접 선택하세요.</small></span><input type="color" id="custom-accent"></label><label class="glass-control" for="glass-opacity"><span><b>창 투명도</b><small>모든 리퀴드 글래스 창에 함께 적용돼요.</small></span><div class="opacity-control"><input type="range" id="glass-opacity" min="10" max="100" step="1"><output id="glass-opacity-value" for="glass-opacity">80%</output></div></label></section>
         <section class="settings-card card subjects-card"><div class="setting-head"><span class="setting-index">02</span><div><h2>과목 및 색상</h2><p>시험과 수행평가 태그 색을 설정하세요.</p></div></div><div class="subject-list" id="subject-list"></div><form class="subject-add" id="subject-form"><input name="subjectName" required placeholder="새 과목 이름"><button class="primary" type="submit">＋ 과목 추가</button></form></section>
         <section class="settings-card card storage-card"><div class="setting-head"><span class="setting-index">03</span><div><h2>데이터 저장</h2><p>이 브라우저에 자동 저장됩니다.</p></div></div><div class="storage"><span>◎</span><div><b>Local storage 연결됨</b><small>새로고침해도 일정과 Todo가 유지돼요.</small></div></div></section>
         <section class="settings-card card background-card"><div class="setting-head"><span class="setting-index">04</span><div><h2>배경 일러스트</h2><p>화면 크기에 맞는 전용 배경이 자동으로 적용돼요.</p></div></div><div class="background-list" id="background-list"></div></section>

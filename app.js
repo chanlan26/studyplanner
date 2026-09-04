@@ -7,11 +7,16 @@
       const PRIORITY_LABEL={low:"Low",medium:"Medium",high:"High"};
       const ACCENTS=["#5868E8","#5963D9","#8658C7","#388F73","#D77943","#D55D8E"];
       const BACKGROUNDS=[
-        {id:"ocean",name:"창밖의 바다",icon:"〰"},
-        {id:"crystal",name:"크리스탈 산",icon:"◇"},
-        {id:"grassland",name:"드넓은 초원",icon:"♧"},
-        {id:"space",name:"보라빛 우주",icon:"✦"},
-        {id:"cliff",name:"절벽 위 하늘",icon:"☁"}
+        {id:"ocean",name:"창밖의 바다",icon:"〰",price:0,description:"햇살이 반짝이는 푸른 바다"},
+        {id:"grassland",name:"드넓은 초원",icon:"♧",price:400,description:"바람이 흐르는 평온한 초원"},
+        {id:"crystal",name:"크리스탈 산",icon:"◇",price:500,description:"수정 산맥이 빛나는 판타지 세계"},
+        {id:"cliff",name:"절벽 위 하늘",icon:"☁",price:600,description:"절벽 사이로 열린 맑은 하늘"},
+        {id:"space",name:"보라빛 우주",icon:"✦",price:800,description:"블랙홀과 별이 흐르는 우주"},
+        {id:"library",name:"마법 도서관",icon:"▤",price:700,description:"달빛과 책 향기가 머무는 서재"},
+        {id:"cafe",name:"디저트 카페",icon:"♨",price:650,description:"달콤한 파스텔빛 휴식 공간"},
+        {id:"aquarium",name:"심해 수족관",icon:"◌",price:750,description:"해파리 빛이 번지는 바닷속 전망대"},
+        {id:"neon",name:"네온 빗속 도시",icon:"⌁",price:900,description:"비에 젖은 꿈결 같은 미래 도시"},
+        {id:"clockwork",name:"별빛 시계공방",icon:"◷",price:1000,description:"별과 톱니바퀴가 움직이는 작업실"}
       ];
       const DEFAULT_SUBJECTS=[
         ["korean","국어","#ef8b8b"],["english","영어","#72a7e8"],["math","수학","#9585e6"],["science","과학","#70bd98"],
@@ -19,18 +24,7 @@
         ["art","미술","#e4bf63"],["pe","체육","#9fca69"],["tech","기술·가정","#8098cc"],["other","기타","#9fa5b2"]
       ].map(([id,name,color])=>({id,name,color}));
       const INITIAL={
-        accent:"#5868E8",background:"ocean",glassOpacity:80,subjects:DEFAULT_SUBJECTS,
-        events:[
-          {id:"seed-exam",date:"2026-09-15",type:"exam",subject:"수학",title:"수학 시험",examRange:"교과서 52~81쪽\n3단원 일차방정식",content:"일차방정식 계산\n활용 문제\n서술형 2문제",note:"프린트 3번 다시 풀기"},
-          {id:"seed-assignment",date:"2026-09-15",type:"assignment",subject:"영어",title:"영어 수행평가",examRange:"Unit 5 본문",content:"2분 영어 스피치",note:"발음 녹음 확인"},
-          {id:"seed-schedule",date:"2026-09-15",type:"schedule",title:"동아리 모임",note:"과학실, 방과 후 4시"},
-          {id:"seed-science",date:"2026-10-20",type:"exam",subject:"과학",title:"과학 시험",examRange:"물질의 상태 변화",content:"개념 + 실험 해석",note:"오답 노트 확인"}
-        ],
-        todos:[
-          {id:"seed-todo-1",title:"수학 문제집 30~40쪽",completed:false,subject:"수학",dueDate:"2026-09-14",priority:"high",note:"틀린 문제 별표"},
-          {id:"seed-todo-2",title:"영어 단어 50개",completed:false,subject:"영어",dueDate:"2026-09-15",priority:"medium",note:""},
-          {id:"seed-todo-3",title:"과학 수행평가 PPT",completed:true,subject:"과학",dueDate:"2026-09-12",priority:"low",note:"이미지 출처 표시"}
-        ]
+        accent:"#5868E8",background:"ocean",glassOpacity:80,tokens:0,ownedBackgrounds:["ocean"],dailyReward:{date:"",todoIds:[]},subjects:DEFAULT_SUBJECTS,events:[],todos:[]
       };
 
       let data=loadData();
@@ -52,7 +46,16 @@
           const saved=JSON.parse(localStorage.getItem(STORAGE_KEY)||"null");
           if(!saved)return clone(INITIAL);
           const savedOpacity=Number(saved.glassOpacity);
-          return {accent:saved.accent||INITIAL.accent,background:BACKGROUNDS.some(item=>item.id===saved.background)?saved.background:INITIAL.background,glassOpacity:Number.isFinite(savedOpacity)?Math.min(100,Math.max(35,savedOpacity)):INITIAL.glassOpacity,subjects:Array.isArray(saved.subjects)&&saved.subjects.length?saved.subjects:clone(DEFAULT_SUBJECTS),events:Array.isArray(saved.events)?saved.events:clone(INITIAL.events),todos:Array.isArray(saved.todos)?saved.todos:clone(INITIAL.todos)};
+          const background=BACKGROUNDS.some(item=>item.id===saved.background)?saved.background:INITIAL.background;
+          const owned=["ocean",...(Array.isArray(saved.ownedBackgrounds)?saved.ownedBackgrounds:[]),background].filter((id,index,array)=>BACKGROUNDS.some(item=>item.id===id)&&array.indexOf(id)===index);
+          return {
+            accent:saved.accent||INITIAL.accent,background,glassOpacity:Number.isFinite(savedOpacity)?Math.min(100,Math.max(10,savedOpacity)):INITIAL.glassOpacity,
+            tokens:Math.max(0,Math.floor(Number(saved.tokens)||0)),ownedBackgrounds:owned,
+            dailyReward:saved.dailyReward&&Array.isArray(saved.dailyReward.todoIds)?{date:String(saved.dailyReward.date||""),todoIds:[...new Set(saved.dailyReward.todoIds.map(String))].slice(0,10)}:clone(INITIAL.dailyReward),
+            subjects:Array.isArray(saved.subjects)&&saved.subjects.length?saved.subjects:clone(DEFAULT_SUBJECTS),
+            events:Array.isArray(saved.events)?saved.events.filter(item=>!String(item.id||"").startsWith("seed-")):[],
+            todos:Array.isArray(saved.todos)?saved.todos.filter(item=>!String(item.id||"").startsWith("seed-")):[]
+          };
         }catch{return clone(INITIAL)}
       }
       function save(){try{localStorage.setItem(STORAGE_KEY,JSON.stringify(data))}catch{}}
@@ -72,6 +75,11 @@
       }
       function applyBackground(){document.body.dataset.background=data.background||INITIAL.background}
       function applyGlass(){document.documentElement.style.setProperty("--glass-opacity",(data.glassOpacity/100).toFixed(2))}
+      function refreshDailyReward(){
+        const today=keyOf(new Date());
+        if(data.dailyReward.date!==today){data.dailyReward={date:today,todoIds:[]};save()}
+        return data.dailyReward;
+      }
       function showToast(message){const el=document.querySelector("#toast");el.textContent=message;el.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>el.classList.remove("show"),1700)}
 
       function holidaysFor(targetYear){
@@ -158,15 +166,29 @@
           return '<article class="todo-item '+(todo.priority==="high"?"high ":"")+(todo.completed?"done":"")+'"><button class="check" style="--subject-color:'+color+'" data-action="toggle-todo" data-id="'+esc(todo.id)+'" aria-label="완료 상태 변경">'+(todo.completed?"✓":"")+'</button><div><div class="todo-title"><h3>'+esc(todo.title)+'</h3><span class="priority '+todo.priority+'">'+PRIORITY_LABEL[todo.priority]+'</span></div><div class="todo-meta">'+(todo.subject?'<span><i class="dot" style="background:'+color+'"></i>'+esc(todo.subject)+'</span>':"")+(due?'<span>◷ '+esc(due)+'</span>':"")+'</div>'+(todo.note?'<p class="todo-note">'+esc(todo.note)+'</p>':"")+'</div><button class="delete" data-action="delete-todo" data-id="'+esc(todo.id)+'" aria-label="할 일 삭제">×</button></article>';
         }).join(""):'<div class="empty-state"><div><b>표시할 할 일이 없어요</b><p>새 할 일을 추가하거나 다른 필터를 선택해 보세요.</p></div></div>';
       }
+      function renderWallet(){
+        const reward=refreshDailyReward(),count=reward.todoIds.length;
+        ["token-balance","market-token-balance"].forEach(id=>{const el=document.querySelector("#"+id);if(el)el.textContent=data.tokens.toLocaleString("ko-KR")});
+        const marketProgress=document.querySelector("#market-daily-progress");if(marketProgress)marketProgress.textContent=count+" / 10 완료";
+        const questCount=document.querySelector("#quest-reward-count");if(questCount)questCount.textContent=count+" / 10";
+      }
+      function renderMarket(){
+        document.querySelector("#market-grid").innerHTML=BACKGROUNDS.map(item=>{
+          const owned=data.ownedBackgrounds.includes(item.id),active=data.background===item.id,affordable=data.tokens>=item.price;
+          const buttonText=active?"✓ 사용 중":owned?"배경 적용":"✦ "+item.price.toLocaleString("ko-KR")+" 구매";
+          return '<article class="market-card card '+(active?"active":"")+'"><div class="market-image"><picture><source media="(max-width:700px)" srcset="assets/backgrounds/'+item.id+'-mobile.png"><img src="assets/backgrounds/'+item.id+'-desktop.png" alt="'+esc(item.name)+' 배경 미리보기" loading="lazy"></picture><span class="ownership '+(owned?"owned":"locked")+'">'+(owned?"소장 중":"LOCKED")+'</span></div><div class="market-card-body"><div class="market-title"><span>'+item.icon+'</span><div><h2>'+esc(item.name)+'</h2><p>'+esc(item.description)+'</p></div></div><button class="market-buy '+(owned?"owned ":"")+(affordable?"":"poor")+'" data-action="market-background" data-value="'+item.id+'" '+(active?"disabled":"")+'>'+buttonText+'</button></div></article>';
+        }).join("");
+      }
+      function renderQuests(){renderWallet()}
       function renderSettings(){
         document.querySelector("#accent-list").innerHTML=ACCENTS.map(color=>'<button class="'+(data.accent.toUpperCase()===color?"selected":"")+'" style="background:'+color+'" data-action="accent" data-value="'+color+'" aria-label="'+color+' 선택">'+(data.accent.toUpperCase()===color?"✓":"")+'</button>').join("");
         document.querySelector("#custom-accent").value=data.accent;
         document.querySelector("#glass-opacity").value=data.glassOpacity;
         document.querySelector("#glass-opacity-value").textContent=Math.round(data.glassOpacity)+"%";
         document.querySelector("#subject-list").innerHTML=data.subjects.map(subject=>'<div class="subject-row"><input type="color" value="'+subject.color+'" data-subject-color="'+esc(subject.id)+'" aria-label="'+esc(subject.name)+' 색상"><span>'+esc(subject.name)+'</span><button data-action="delete-subject" data-id="'+esc(subject.id)+'" aria-label="'+esc(subject.name)+' 삭제">×</button></div>').join("");
-        document.querySelector("#background-list").innerHTML=BACKGROUNDS.map(item=>'<button class="background-option '+(data.background===item.id?"selected":"")+'" data-action="background" data-value="'+item.id+'" aria-pressed="'+(data.background===item.id)+'"><img src="assets/backgrounds/'+item.id+'-desktop.png" alt="" loading="lazy"><span><i>'+item.icon+'</i><b>'+item.name+'</b></span></button>').join("");
+        document.querySelector("#background-list").innerHTML=BACKGROUNDS.map(item=>{const owned=data.ownedBackgrounds.includes(item.id);return '<button class="background-option '+(data.background===item.id?"selected ":"")+(owned?"":"locked")+'" data-action="'+(owned?"background":"open-market")+'" data-value="'+item.id+'" aria-pressed="'+(data.background===item.id)+'"><img src="assets/backgrounds/'+item.id+'-desktop.png" alt="" loading="lazy"><span><i>'+item.icon+'</i><b>'+item.name+'</b><em>'+(owned?"":"🔒")+'</em></span></button>'}).join("");
       }
-      function renderAll(){applyAccent();applyBackground();applyGlass();renderNav();renderCalendar();renderTodoOptions();renderTodos();renderSettings()}
+      function renderAll(){applyAccent();applyBackground();applyGlass();renderNav();renderCalendar();renderTodoOptions();renderTodos();renderWallet();renderMarket();renderQuests();renderSettings()}
 
       function openDate(key){selectedDate=key;selectedEventId=null;addingEvent=false;renderCalendar();renderPanel()}
       function openEvent(id){const item=data.events.find(event=>event.id===id);if(!item)return;selectedDate=item.date;selectedEventId=id;addingEvent=false;renderCalendar();renderPanel()}
@@ -193,7 +215,7 @@
       document.addEventListener("click",event=>{
         const target=event.target.closest("[data-action]");if(!target)return;
         const action=target.dataset.action;
-        if(action==="page"){page=target.dataset.page;renderNav();if(page==="todo")renderTodos();if(page==="settings")renderSettings();window.scrollTo({top:0,behavior:"smooth"})}
+        if(action==="page"){page=target.dataset.page;renderNav();renderWallet();if(page==="todo")renderTodos();if(page==="market")renderMarket();if(page==="quests")renderQuests();if(page==="settings")renderSettings();window.scrollTo({top:0,behavior:"smooth"})}
         if(action==="today"){page="calendar";year=new Date().getFullYear();mobileMonth=new Date().getMonth();renderAll();openDate(keyOf(new Date()))}
         if(action==="year-prev"){year--;renderCalendar()} if(action==="year-next"){year++;renderCalendar()}
         if(action==="month-prev"){if(mobileMonth===0){mobileMonth=11;year--}else mobileMonth--;renderCalendar()}
@@ -212,10 +234,30 @@
         }
         if(action==="priority"){todoPriority=target.dataset.value;document.querySelectorAll("#priority-picker button").forEach(button=>button.classList.toggle("selected",button.dataset.value===todoPriority))}
         if(action==="todo-filter"){todoFilter=target.dataset.value;renderTodos()}
-        if(action==="toggle-todo"){const todo=data.todos.find(item=>item.id===target.dataset.id);if(todo){todo.completed=!todo.completed;save();renderAll()}}
+        if(action==="toggle-todo"){
+          const todo=data.todos.find(item=>item.id===target.dataset.id);if(!todo)return;
+          const completing=!todo.completed;todo.completed=!todo.completed;
+          let rewardMessage="";
+          if(completing){
+            const reward=refreshDailyReward();
+            if(!reward.todoIds.includes(todo.id)&&reward.todoIds.length<10){reward.todoIds.push(todo.id);data.tokens+=100;rewardMessage="Todo 완료! 100 토큰을 받았어요. ✦"}
+            else if(!reward.todoIds.includes(todo.id)&&reward.todoIds.length>=10)rewardMessage="오늘 받을 수 있는 10회 보상을 모두 받았어요.";
+          }
+          save();renderAll();if(rewardMessage)showToast(rewardMessage);
+        }
         if(action==="delete-todo"&&confirm("이 할 일을 삭제할까요?")){data.todos=data.todos.filter(todo=>todo.id!==target.dataset.id);save();renderAll()}
         if(action==="accent"){data.accent=target.dataset.value;save();renderAll()}
-        if(action==="background"){data.background=target.dataset.value;save();applyBackground();renderSettings();showToast("배경을 바꿨어요.")}
+        if(action==="background"){
+          if(!data.ownedBackgrounds.includes(target.dataset.value)){page="market";renderNav();renderMarket();return showToast("마켓에서 먼저 배경을 구매해 주세요.")}
+          data.background=target.dataset.value;save();applyBackground();renderSettings();renderMarket();showToast("배경을 바꿨어요.");
+        }
+        if(action==="open-market"){page="market";renderNav();renderMarket();window.scrollTo({top:0,behavior:"smooth"});showToast("마켓에서 잠금 해제할 수 있어요.")}
+        if(action==="market-background"){
+          const item=BACKGROUNDS.find(background=>background.id===target.dataset.value);if(!item)return;
+          if(data.ownedBackgrounds.includes(item.id)){data.background=item.id;save();applyBackground();renderAll();return showToast("새 배경을 적용했어요.")}
+          if(data.tokens<item.price)return showToast("토큰이 "+(item.price-data.tokens).toLocaleString("ko-KR")+"개 더 필요해요.");
+          data.tokens-=item.price;data.ownedBackgrounds.push(item.id);data.background=item.id;save();applyBackground();renderAll();showToast(item.name+" 배경을 구매했어요! ✦");
+        }
         if(action==="delete-subject"){
           if(data.subjects.length<=1)return showToast("과목은 하나 이상 필요해요.");
           if(confirm("이 과목을 목록에서 삭제할까요? 기존 일정은 유지됩니다.")){data.subjects=data.subjects.filter(subject=>subject.id!==target.dataset.id);save();renderAll()}
